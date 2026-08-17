@@ -1,6 +1,6 @@
-# Server – Rezept-Fitness-Tracker (Backend)
+# Server – FitMeal (Backend)
 
-Backend-API für den Rezept-Fitness-Tracker. Node.js + Express + MongoDB (Mongoose).
+Backend-API für FitMeal. Node.js + Express + MongoDB (Mongoose).
 Aufgabe: Nutzer verwalten, Rezepte speichern und Ernährungs-/Fitness-Werte (Kalorien, Protein, Carbs, Fat) tracken.
 
 ## Tech-Stack

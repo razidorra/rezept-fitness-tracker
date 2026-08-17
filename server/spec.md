@@ -1,4 +1,4 @@
-# API-Spezifikation – Rezept-Fitness-Tracker Backend
+# API-Spezifikation – FitMeal Backend
 
 Formale Beschreibung aller API-Endpunkte: Request/Response-Format, Statuscodes, Auth-Anforderungen. Für den allgemeinen Projektüberblick siehe [README.md](README.md).
 
@@ -162,6 +162,50 @@ Löscht einen Tracking-Eintrag (muss dem eingeloggten Nutzer gehören).
 
 ---
 
+## Workouts (`/api/workouts`) 🚧
+
+Alle Endpunkte erfordern Auth. Noch nicht implementiert — Ordnergerüst (`features/workouts/`) existiert, Model/Logik fehlen noch.
+
+### `GET /api/workouts` 🚧
+Liste der Workouts des eingeloggten Nutzers.
+
+**Response `200`**: Array von `Workout`-Dokumenten.
+
+### `POST /api/workouts` 🚧
+Legt ein neues Workout an, inkl. eingebetteter Übungen.
+
+**Request Body**
+```json
+{
+  "name": "Chest & Triceps",
+  "duration": 45,
+  "date": "2026-08-17",
+  "exercises": [
+    { "name": "Bench Press", "sets": 4, "reps": 10, "weight": 60 },
+    { "name": "Tricep Pushdown", "sets": 3, "reps": 15, "weight": 30 }
+  ]
+}
+```
+
+| Feld | Typ | Pflicht | Hinweis |
+|---|---|---|---|
+| `name` | string | ja | Name des Workouts |
+| `duration` | number | nein | Dauer in Minuten |
+| `date` | date | nein | Default: aktueller Zeitpunkt |
+| `exercises` | array | nein | jedes Element: `{ name, sets, reps, weight }` — eingebettetes Sub-Schema, keine eigene Collection |
+
+**Response `201`**: das erstellte `Workout`-Dokument.
+
+**Fehler:** `400` (`name` fehlt) · `401`
+
+### `DELETE /api/workouts/:id` 🚧
+Löscht ein Workout (muss dem eingeloggten Nutzer gehören).
+
+**Response `204`**
+**Fehler:** `401` · `404`
+
+---
+
 ## Datenmodelle
 
-Siehe [README.md](README.md#datenmodelle) für die Mongoose-Schemas (`User`, `SavedRecipe`, `TrackingEntry`) mit Feldtypen und Beziehungen.
+Siehe [README.md](README.md#datenmodelle) für die Mongoose-Schemas (`User`, `SavedRecipe`, `TrackingEntry`) mit Feldtypen und Beziehungen. `Workout` ist noch offen — Felder siehe oben; `exercises` als eingebettetes Array (kein eigenes Model/Collection), analog dazu, wie `TrackingEntry` einzelne Werte direkt trägt statt zu referenzieren.
