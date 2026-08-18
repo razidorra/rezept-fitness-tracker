@@ -1,184 +1,209 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-
-.hero {
+.main-nav {
   position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
+  z-index: 30;
   display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
+  align-items: center;
+  gap: 32px;
+  padding: 20px 5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  background: var(--chrome);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
 
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
+.brand {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
+  flex-shrink: 0;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
+.brand-mark {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1px;
+  background: var(--button);
+  color: var(--button-ink);
 }
 
-.ticks {
-  position: relative;
+.brand-word {
+  color: var(--chrome-text);
+  font-family: var(--heading);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.brand-word-accent {
+  color: var(--highlight);
+}
+
+.main-links {
+  display: flex;
+  flex: 1;
+  gap: 20px;
+}
+
+.main-links a,
+.nav-login,
+.nav-profile {
+  color: color-mix(in srgb, var(--chrome-text) 78%, transparent);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.main-links a:hover,
+.nav-login:hover,
+.nav-profile:hover {
+  color: var(--chrome-text);
+}
+
+.nav-profile.active {
+  color: var(--highlight);
+  font-weight: 700;
+}
+
+.profile-settings .cl-rootBox,
+.profile-settings .cl-userProfile-root,
+.profile-settings .cl-cardBox {
   width: 100%;
+  max-width: none;
+}
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
+.main-links a.active {
+  color: var(--highlight);
+  font-weight: 700;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.nav-signup {
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  background: var(--button);
+  color: var(--button-ink);
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.nav-signup:hover {
+  opacity: 0.85;
+}
+
+.app-main {
+  width: 100%;
+  flex: 1;
+  box-sizing: border-box;
+  padding: 64px 5rem 100px;
+}
+
+.site-footer {
+  display: flex;
+  width: 100%;
+  min-height: 280px;
+  margin: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 38px;
+  border-top: 1px solid var(--border);
+  background: var(--chrome);
+  color: var(--chrome-text);
+  padding: 48px 24px;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px 48px;
+}
+
+.footer-links a {
+  color: color-mix(in srgb, var(--chrome-text) 78%, transparent);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: var(--highlight);
+}
+
+.social-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+}
+
+.social-links a {
+  display: flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in srgb, var(--chrome-text) 78%, transparent);
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.social-links a:hover {
+  color: var(--highlight);
+  transform: translateY(-2px);
+}
+
+.social-links svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.footer-bottom {
+  color: color-mix(in srgb, var(--chrome-text) 72%, transparent);
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .main-nav {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-inline: 16px;
   }
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
+  .main-links {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 16px;
   }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
+
+  .app-main {
+    padding: 28px 16px 48px;
   }
+
+  .footer-links {
+    gap: 14px 24px;
+  }
+
+  .site-footer {
+    min-height: 260px;
+    margin: 0;
+    gap: 32px;
+    padding: 40px 16px;
+  }
+
 }

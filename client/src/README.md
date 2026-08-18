@@ -1,38 +1,39 @@
-# Client – Ordnerstruktur (feature-basiert)
+# Frontend-Quellstruktur
 
-Der Code ist wie im Backend nach **Fachlichkeit** gruppiert statt nach Dateityp. Alles, was zu `auth`, `recipes` bzw. `tracking` gehört, liegt zusammen in einem Feature-Ordner.
+Das Frontend ist nach Features organisiert. Seiten enthalten Darstellung und UI-Zustand; API-Zugriffe liegen in den jeweiligen `api/`-Modulen.
 
+## Zentrale Dateien
+
+- `main.jsx`: React- und Clerk-Einstieg
+- `RouterApp.jsx`: synchronisiert Clerk mit Router und API-Token-Provider
+- `router.jsx`: Route Tree und Schutz von `/discover`
+- `App.jsx`: gemeinsamer Header, Footer und Route-Outlet
+- `index.css`: Tailwind-Import, Design-Tokens, Typografie und globales Restaurant-Theme
+- `App.css`: Header-, Footer-, Profil- und responsive Layout-Regeln
+
+## Verzeichnisse
+
+- `features/auth`: Clerk-Login und Registrierung
+- `features/dashboard`: Landingpage und eingeloggtes Dashboard
+- `features/recipes`: lokaler Rezeptkatalog, Online-Suche und Favoriten
+- `features/catalog`: Online Search und öffentliche Food-/Meal-Katalog-APIs
+- `features/nutrition`: Produktsuche und Übergabe ans Tracking
+- `features/meal-planner`: Tagesziel, Mahlzeiten-Dropdowns und Planner-Speicher
+- `features/tracking`: persönliche Ernährungseinträge
+- `features/progress`: Sieben-Tage-Auswertung
+- `features/favorites`: gespeicherte Rezepte
+- `features/shopping-list`: lokale Einkaufsliste
+- `features/profile` und `features/settings`: Clerk-Kontoverwaltung
+- `shared/api`: gemeinsamer Fetch-Client mit Clerk-Token-Retry
+- `shared/components`: AppShell, Karten und gemeinsame Icons
+
+## Datenfluss
+
+```text
+React Page → Feature API → shared/api/apiClient.js → Express API
+                                               ↘ Clerk Bearer Token
 ```
-src/
-├── main.jsx              # React-Einstiegspunkt, rendert <App />
-├── App.jsx               # Root-Komponente (aktuell noch Vite-Standard-Template)
-├── App.css / index.css   # globale Styles
-├── assets/                # Bilder/Icons
-├── features/
-│   ├── auth/
-│   │   ├── components/     # kleine, wiederverwendbare UI-Teile nur für Auth (z.B. LoginForm)
-│   │   ├── pages/           # ganze Seiten (z.B. LoginPage, RegisterPage)
-│   │   └── api/              # Fetch-/Axios-Calls gegen /api/auth/...
-│   ├── recipes/
-│   │   ├── components/      # z.B. RecipeCard, RecipeSearchBar
-│   │   ├── pages/             # z.B. RecipeSearchPage, SavedRecipesPage
-│   │   └── api/                # Calls gegen /api/recipes/...
-│   └── tracking/
-│       ├── components/      # z.B. TrackingEntryForm, DailyChart
-│       ├── pages/             # z.B. TrackingDashboardPage
-│       └── api/                # Calls gegen /api/tracking/...
-└── shared/
-    ├── components/          # generische UI-Bausteine, die mehrere Features nutzen (Button, Modal, Navbar, ...)
-    ├── hooks/                # generische Hooks, die mehrere Features nutzen (z.B. useAuth, useFetch)
-    └── api/                   # gemeinsame API-Basis (z.B. fetch-Wrapper mit Base-URL, Auth-Header)
-```
 
-## Status
+Der Meal Planner berechnet eine erwachsene Schätzung mit der Mifflin–St.-Jeor-Gleichung und Aktivitätsfaktoren. Das Ergebnis ist allgemeine Orientierung und kein medizinischer Rat.
 
-Die Feature-Ordner sind aktuell noch **leer** (nur `.gitkeep`, damit sie als Platzhalter bestehen bleiben) — `App.jsx` ist noch das unveränderte Vite-Template. Das ist der nächste Schritt: sobald Routing (z.B. `react-router-dom`) eingerichtet ist, ziehen hier echte Seiten und Komponenten ein, die die Backend-Endpunkte aus `server/features/*` ansprechen.
-
-## Faustregel: `components/` vs. `pages/` vs. `shared/`
-
-- **`features/<name>/components/`** – UI-Baustein, der nur innerhalb dieses einen Features Sinn ergibt.
-- **`features/<name>/pages/`** – eine ganze Route/Ansicht, baut sich aus Components zusammen.
-- **`shared/`** – wird von **mehr als einem** Feature gebraucht (z.B. ein `Button`, die Navigationsleiste, der `fetch`-Wrapper).
+Siehe [../spec.md](../spec.md) für Routen, Sichtbarkeit, State und API-Verträge.

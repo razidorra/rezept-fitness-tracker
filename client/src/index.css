@@ -1,23 +1,74 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import "tailwindcss";
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+/* Bindet unsere Tokens (siehe :root unten, inkl. Dark-Mode-Overrides) als
+   Tailwind-Utilities ein, z.B. bg-accent, text-text-h, rounded-pill.
+   Es werden keine Werte dupliziert -- die @theme-Einträge zeigen nur auf die
+   CSS-Variablen weiter unten, deshalb funktioniert der Dark-Mode-Wechsel
+   automatisch weiter. */
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-inverted: var(--surface-inverted);
+  --color-text-on-inverted: var(--text-on-inverted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-border: var(--accent-border);
+  --color-text: var(--text);
+  --color-text-h: var(--text-h);
+  --color-border: var(--border);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-pill: var(--radius-pill);
+
+  --font-sans: var(--sans);
+}
+
+:root {
+  /* Text */
+  --text: #aaaaaa;
+  --text-h: #ffffff;
+
+  /* Flächen */
+  --bg: #0c0c0c;
+  --surface: #121212;
+  --surface-inverted: #1e1e1e;
+  --text-on-inverted: #ffffff;
+  --chrome: #0c0c0c;
+  --chrome-text: #ffffff;
+
+  /* Linien */
+  --border: #333333;
+
+  /* Gericht-Referenz: tiefes Schwarz, warmes Gold und elegante Cremetöne. */
+  --accent: #dcca87;
+  --accent-ink: #0c0c0c;
+  --accent-bg: rgba(220, 202, 135, 0.12);
+  --accent-border: #dcca87;
+  --button: #dcca87;
+  --button-ink: #0c0c0c;
+  --highlight: #dcca87;
+
+  --code-bg: #1e1e1e;
+  --shadow:
+    rgba(0, 0, 0, 0.4) 0 20px 40px -12px, rgba(0, 0, 0, 0.25) 0 6px 12px -6px;
+
+  /* Radien */
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 1px;
+
+  /* Schrift */
+  --sans: 'Open Sans', system-ui, sans-serif;
+  --heading: 'Cormorant Upright', Georgia, serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  color-scheme: dark;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -30,24 +81,11 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+button.bg-accent,
+a.bg-accent {
+  background-color: var(--button);
+  color: var(--button-ink);
+  border: 1px solid var(--accent);
 }
 
 body {
@@ -55,11 +93,6 @@ body {
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -67,19 +100,20 @@ body {
 }
 
 h1,
-h2 {
+h2,
+h3,
+h4 {
   font-family: var(--heading);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-h);
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
+  font-size: 40px;
+  letter-spacing: -1.2px;
+  margin: 0 0 8px;
   @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+    font-size: 30px;
   }
 }
 h2 {
@@ -95,15 +129,11 @@ p {
   margin: 0;
 }
 
-code,
-.counter {
+code {
   font-family: var(--mono);
   display: inline-flex;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text-h);
-}
-
-code {
   font-size: 15px;
   line-height: 135%;
   padding: 4px 8px;
