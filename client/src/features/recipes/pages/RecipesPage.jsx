@@ -1,25 +1,26 @@
-// TODO: wire this up to the real backend once it's worth it:
-// searchRecipes(query) -> GET /api/recipes/search?query=... (Spoonacular-backed,
-// see server/spec.md "Recipes"), saveRecipe() -> POST /api/recipes,
-// getSavedRecipes() -> GET /api/recipes. RECIPES below is placeholder data so
-// the page has something to render -- swap it for real search results /
-// saved recipes once recipesApi.js's TODOs are implemented.
+// Der lokale Katalog ist sofort verfügbar. "Search online" fragt die kostenlose
+// TheMealDB-Suche ab; Herz-Buttons speichern dauerhaft in MongoDB.
 //
-// Layout: this page renders its own full-page sidebar+topbar shell (see the
-// `fixed inset-0` wrapper below) instead of using App.jsx's top navbar --
-// that was a deliberate scope call: only /recipes gets this look for now,
-// so it "escapes" the parent <header>/<main> via fixed positioning rather
-// than fighting it for space. If this shell spreads to more pages later,
-// promote it into App.jsx instead of copy-pasting.
+// AppShell provides the shared content width and recipe search field; the
+// global header and footer are rendered by App.jsx.
 //
 // Photos: client/src/assets/recipes/*.jpg, mostly from Pexels (search terms
 // noted per recipe below), resized to 640x640 JPEGs. chicken-quinoa-bowl.jpg
 // reuses the landing page's hero-bowl.jpg. No API key needed -- these are
 // static bundled images, not live search results.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth, useClerk } from "@clerk/clerk-react";
 import { Link } from "@tanstack/react-router";
-import { useUser } from "@clerk/clerk-react";
+import AppShell from "../../../shared/components/AppShell.jsx";
+import { HeartIcon, ClockIcon, FlameIcon, BoltIcon } from "../../../shared/components/icons.jsx";
+import {
+  deleteRecipe,
+  getSavedRecipes,
+  saveRecipe,
+} from "../api/recipesApi.js";
+import { findMeals } from "../../catalog/api/catalogApi.js";
+import { tryAddToDailyPlan } from "../../meal-planner/mealPlanStorage.js";
 import chickenQuinoaBowl from "../../../assets/recipes/chicken-quinoa-bowl.jpg";
 import oatmeal from "../../../assets/recipes/oatmeal.jpg";
 import salmon from "../../../assets/recipes/salmon.jpg";
@@ -39,6 +40,12 @@ const RECIPES = [
     time: "35 min",
     kcal: 550,
     protein: 52,
+    carbs: 48,
+    fat: 16,
+    fiber: 9,
+    description: "A balanced high-protein bowl with lean chicken, whole-grain quinoa and colorful vegetables.",
+    ingredients: ["150 g chicken breast", "100 g cooked quinoa", "100 g broccoli", "½ avocado", "6 cherry tomatoes", "1 tsp olive oil", "Lemon juice, paprika, salt and pepper"],
+    instructions: ["Season the chicken and grill it until fully cooked, then slice it.", "Steam the broccoli and warm the cooked quinoa.", "Arrange everything in a bowl with avocado and tomatoes.", "Finish with olive oil and lemon juice."],
   },
   {
     id: "protein-oatmeal",
@@ -49,6 +56,12 @@ const RECIPES = [
     time: "10 min",
     kcal: 420,
     protein: 28,
+    carbs: 52,
+    fat: 11,
+    fiber: 9,
+    description: "Creamy oats with protein, fruit and seeds for a filling breakfast.",
+    ingredients: ["60 g rolled oats", "200 ml milk or plant drink", "25 g protein powder", "½ banana", "1 tbsp chia seeds", "Cinnamon"],
+    instructions: ["Simmer oats and milk for 5–7 minutes.", "Remove from the heat and stir in protein powder.", "Top with banana, chia seeds and cinnamon."],
   },
   {
     id: "lemon-garlic-salmon",
@@ -59,6 +72,12 @@ const RECIPES = [
     time: "25 min",
     kcal: 580,
     protein: 45,
+    carbs: 18,
+    fat: 34,
+    fiber: 6,
+    description: "Omega-3-rich salmon with roasted vegetables and a fresh lemon-garlic finish.",
+    ingredients: ["170 g salmon fillet", "200 g mixed vegetables", "1 tsp olive oil", "1 garlic clove", "½ lemon", "Dill, salt and pepper"],
+    instructions: ["Heat the oven to 200°C.", "Place salmon and vegetables on a tray and season with oil, garlic, dill, salt and pepper.", "Bake for 15–18 minutes and serve with lemon."],
   },
   {
     id: "chickpea-avocado-salad",
@@ -69,6 +88,12 @@ const RECIPES = [
     time: "15 min",
     kcal: 350,
     protein: 15,
+    carbs: 44,
+    fat: 15,
+    fiber: 13,
+    description: "A fresh plant-based salad rich in fiber, healthy fats and slow carbohydrates.",
+    ingredients: ["150 g cooked chickpeas", "½ avocado", "½ cucumber", "8 cherry tomatoes", "¼ red onion", "Parsley", "Lemon juice, salt and pepper"],
+    instructions: ["Rinse and drain the chickpeas.", "Dice the vegetables and avocado.", "Combine everything with parsley and lemon juice, then season."],
   },
   {
     id: "avocado-toast",
@@ -79,6 +104,12 @@ const RECIPES = [
     time: "10 min",
     kcal: 320,
     protein: 12,
+    carbs: 36,
+    fat: 15,
+    fiber: 10,
+    description: "Quick whole-grain toast with creamy avocado and a protein-rich egg.",
+    ingredients: ["2 slices whole-grain bread", "½ avocado", "1 egg", "Lemon juice", "Chili flakes, salt and pepper"],
+    instructions: ["Toast the bread and cook the egg to your preference.", "Mash avocado with lemon, salt and pepper.", "Spread on toast, add the egg and chili flakes."],
   },
   {
     id: "berry-protein-smoothie",
@@ -89,6 +120,12 @@ const RECIPES = [
     time: "5 min",
     kcal: 280,
     protein: 25,
+    carbs: 36,
+    fat: 5,
+    fiber: 8,
+    description: "A fast berry smoothie with plant protein and naturally sweet fruit.",
+    ingredients: ["150 g frozen mixed berries", "1 small banana", "25 g plant protein powder", "250 ml unsweetened soy drink", "1 tsp ground flaxseed"],
+    instructions: ["Add all ingredients to a blender.", "Blend until smooth, adding a little water if needed.", "Serve immediately."],
   },
   {
     id: "veggie-stir-fry",
@@ -99,6 +136,12 @@ const RECIPES = [
     time: "20 min",
     kcal: 420,
     protein: 22,
+    carbs: 58,
+    fat: 12,
+    fiber: 12,
+    description: "Crisp vegetables and tofu in a light ginger-soy sauce.",
+    ingredients: ["150 g firm tofu", "250 g mixed stir-fry vegetables", "100 g cooked brown rice", "1 tbsp low-sodium soy sauce", "1 tsp sesame oil", "Ginger and garlic"],
+    instructions: ["Sear the diced tofu until golden and set aside.", "Stir-fry the vegetables with ginger and garlic.", "Return tofu to the pan, add soy sauce and sesame oil, and serve with rice."],
   },
   {
     id: "berry-yogurt-parfait",
@@ -108,7 +151,13 @@ const RECIPES = [
     tags: ["Vegetarian", "Gluten Free"],
     time: "10 min",
     kcal: 290,
-    protein: 9,
+    protein: 19,
+    carbs: 40,
+    fat: 8,
+    fiber: 6,
+    description: "Greek yogurt layered with berries, oats and nuts for a fresh dessert or breakfast.",
+    ingredients: ["200 g Greek yogurt", "120 g mixed berries", "30 g rolled oats", "10 g chopped almonds", "1 tsp honey"],
+    instructions: ["Toast the oats briefly in a dry pan if desired.", "Layer yogurt, berries and oats in a glass.", "Top with almonds and honey."],
   },
 ];
 
@@ -132,522 +181,317 @@ const CATEGORIES = [
   { key: "desserts", label: "Desserts", emoji: "🍰" },
 ];
 
-// Sidebar-Links -- Home/Recipes/Workouts existieren schon, der Rest sind neue
-// Platzhalter-Seiten (siehe features/nutrition, features/meal-planner, etc.),
-// extra für diesen Sidebar-Mock angelegt.
-const SIDEBAR_LINKS = [
-  { label: "Home", to: "/", icon: HomeIcon },
-  { label: "Recipes", to: "/recipes", icon: BookIcon },
-  { label: "Workouts", to: "/workouts", icon: DumbbellIcon },
-  { label: "Nutrition", to: "/nutrition", icon: UtensilsIcon },
-  { label: "Meal Planner", to: "/meal-planner", icon: CalendarIcon },
-  { label: "Progress", to: "/progress", icon: ChartIcon },
-  { label: "Favorites", to: "/favorites", icon: HeartIcon },
-  { label: "Shopping List", to: "/shopping-list", icon: CartIcon },
-];
-
 export default function RecipesPage() {
-  const { user } = useUser();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isSignedIn, userId } = useAuth();
+  const { openSignIn, signOut } = useClerk();
   const [activeFilter, setActiveFilter] = useState("All Recipes");
   const [activeCategory, setActiveCategory] = useState("all");
   const [query, setQuery] = useState("");
-  const [favorites, setFavorites] = useState(() => new Set());
+  const [savedRecipes, setSavedRecipes] = useState([]);
+  const [searchResults, setSearchResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [planFeedback, setPlanFeedback] = useState(null);
 
-  const visible = RECIPES.filter((recipe) => {
+  useEffect(() => {
+    if (!isSignedIn) {
+      return;
+    }
+    getSavedRecipes()
+      .then((recipes) => { setSavedRecipes(recipes); setAuthError(""); })
+      .catch((err) => {
+        if (err.status === 401) setAuthError(err.message);
+        else setError(err.message);
+      })
+      .finally(() => setLoading(false));
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    if (!selectedRecipe) return;
+    const close = (event) => { if (event.key === "Escape") setSelectedRecipe(null); };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [selectedRecipe]);
+
+  const displayedRecipes = searchResults ?? RECIPES;
+
+  const visible = displayedRecipes.filter((recipe) => {
     const matchesFilter =
       activeFilter === "All Recipes" || recipe.tags.includes(activeFilter);
     const matchesCategory =
       activeCategory === "all" || recipe.category === activeCategory;
-    const matchesQuery = recipe.title
-      .toLowerCase()
-      .includes(query.trim().toLowerCase());
+    const matchesQuery = searchResults
+      ? true
+      : recipe.title.toLowerCase().includes(query.trim().toLowerCase());
     return matchesFilter && matchesCategory && matchesQuery;
   });
 
-  function toggleFavorite(id) {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  async function runSearch() {
+    if (!query.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const results = await findMeals(query.trim());
+      setSearchResults(
+        results.map((meal) => ({
+          id: meal.id,
+          externalId: `mealdb:${meal.id}`,
+          title: meal.name,
+          image: meal.imageUrl,
+          category: "all",
+          tags: [meal.category, meal.area].filter(Boolean),
+          time: "—",
+          kcal: null,
+          protein: null,
+          carbs: null,
+          fat: null,
+          fiber: null,
+          description: meal.instructions ? `${meal.instructions.slice(0, 180)}${meal.instructions.length > 180 ? "…" : ""}` : "Recipe details from TheMealDB.",
+          ingredients: meal.ingredients.map((ingredient) => `${ingredient.measure} ${ingredient.name}`.trim()),
+          instructions: meal.instructions ? [meal.instructions] : [],
+          sourceUrl: meal.sourceUrl || `https://www.themealdb.com/meal/${meal.id}`,
+        })),
+      );
+      setActiveCategory("all");
+      setActiveFilter("All Recipes");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openRecipe(recipe) {
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
+    setPlanFeedback(null);
+    setSelectedRecipe(recipe);
+  }
+
+  function addRecipeToPlan(recipe) {
+    if (recipe.kcal === null || recipe.kcal === undefined) {
+      setPlanFeedback({ type: "warning", text: "This online recipe has no verified calorie values, so it cannot be checked against your daily plan." });
+      return;
+    }
+    const result = tryAddToDailyPlan(userId, {
+      id: recipe.id,
+      title: recipe.title,
+      kcal: recipe.kcal,
+      protein: recipe.protein || 0,
+      carbs: recipe.carbs || 0,
+      fat: recipe.fat || 0,
+      amount: "1 serving",
     });
+    if (result.status === "profile-required") {
+      setPlanFeedback({ type: "warning", text: "Set up your weight, height and activity in the Meal Planner first.", setup: true });
+    } else if (result.status === "over-target") {
+      setPlanFeedback({ type: "warning", text: `${recipe.title} would put today's plan about ${result.over} kcal above your estimated target. Choose another meal or remove an existing item.` });
+    } else {
+      setPlanFeedback({ type: "success", text: `${recipe.title} was added. About ${result.remaining} kcal remain in today's plan.` });
+    }
+  }
+
+  async function reauthenticate() {
+    await signOut();
+    openSignIn();
+  }
+
+  async function toggleFavorite(recipe) {
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
+    const externalId = recipe.externalId ?? `static:${recipe.id}`;
+    const saved = savedRecipes.find((item) => item.externalId === externalId);
+    setError("");
+    try {
+      if (saved) {
+        await deleteRecipe(saved._id);
+        setSavedRecipes((current) => current.filter((item) => item._id !== saved._id));
+      } else {
+        const created = await saveRecipe({
+          externalId,
+          title: recipe.title,
+          imageUrl: recipe.externalId ? (recipe.image ?? recipe.imageUrl) : undefined,
+          calories: recipe.kcal ?? recipe.calories,
+          protein: recipe.protein,
+          carbs: recipe.carbs,
+          fat: recipe.fat,
+        });
+        setSavedRecipes((current) => [created, ...current]);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex bg-bg text-text">
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+    <AppShell
+      search={{
+        value: query,
+        onChange: setQuery,
+        onSubmit: runSearch,
+        placeholder: "Search recipes, ingredients...",
+      }}
+    >
+      <h1 className="mb-1! text-2xl! sm:text-3xl!">Recipes</h1>
+      <p className="text-text">
+        Discover healthy and delicious recipes to fuel your goals.
+      </p>
+      {!isSignedIn && <div className="mt-4 rounded-lg border border-accent-border bg-accent-bg p-4 text-sm text-text-h">You can browse and search freely. Sign in to open ingredients, preparation, nutrition details or save a favorite.</div>}
+      {isSignedIn && authError && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-400 bg-amber-50 p-4 text-sm text-amber-900"><span>{authError}</span><button type="button" onClick={reauthenticate} className="rounded-pill bg-accent px-4 py-2 font-semibold text-accent-ink">Log in again</button></div>}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button type="button" onClick={runSearch} disabled={loading} className="rounded-pill bg-accent px-5 py-2 text-sm font-semibold text-accent-ink disabled:opacity-60">
+          {loading ? "Loading…" : "Search healthy recipes online"}
+        </button>
+        <Link to="/meal-planner" className="rounded-pill border border-border bg-surface px-5 py-2 text-sm font-medium hover:border-accent-border">Open Meal Planner</Link>
+        {searchResults && (
+          <button type="button" onClick={() => { setSearchResults(null); setQuery(""); }} className="rounded-pill border border-border bg-surface px-5 py-2 text-sm font-medium">
+            Show catalog
+          </button>
+        )}
+      </div>
+      {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
+
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        {FILTERS.map((filter) => (
+          <button
+            key={filter}
+            type="button"
+            onClick={() => setActiveFilter(filter)}
+            className={`rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeFilter === filter
+                ? "border-accent bg-accent text-accent-ink"
+                : "border-border bg-surface text-text hover:border-accent-border"
+            }`}
+          >
+            {filter}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat.key}
+            type="button"
+            onClick={() => setActiveCategory(cat.key)}
+            className={`flex flex-col items-center gap-2 rounded-lg border p-3 text-xs font-medium transition-colors ${
+              activeCategory === cat.key
+                ? "border-accent bg-accent-bg text-text-h"
+                : "border-border bg-surface text-text hover:border-accent-border"
+            }`}
+          >
+            <span className="text-xl">{cat.emoji}</span>
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {visible.length === 0 ? (
+        <p className="mt-10 text-center text-text">
+          No recipes match your search.
+        </p>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {visible.map((recipe) => (
+            <article
+              key={recipe.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => openRecipe(recipe)}
+              onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openRecipe(recipe); } }}
+              className="cursor-pointer overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition duration-200 hover:-translate-y-1 hover:border-accent-border hover:shadow-lg focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <div className="relative">
+                {recipe.image ? <img src={recipe.image} alt={recipe.title} className="aspect-square w-full object-cover" /> : <div className="flex aspect-square items-center justify-center bg-accent-bg text-4xl" aria-label={recipe.title}>🍽️</div>}
+                <button
+                  type="button"
+                  onClick={(event) => { event.stopPropagation(); toggleFavorite(recipe); }}
+                  aria-label={
+                    savedRecipes.some((item) => item.externalId === (recipe.externalId ?? `static:${recipe.id}`))
+                      ? "Remove from favorites"
+                      : "Add to favorites"
+                  }
+                  className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-surface/90 shadow-sm"
+                >
+                  <HeartIcon filled={savedRecipes.some((item) => item.externalId === (recipe.externalId ?? `static:${recipe.id}`))} />
+                </button>
+              </div>
+              <div className="p-4">
+                <h3 className="mb-1! text-base! font-medium text-text-h">
+                  {recipe.title}
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {recipe.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-pill bg-accent-bg px-2 py-0.5 text-[11px] font-medium text-text-h"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                {!isSignedIn ? <p className="mt-3 text-xs text-text">🔒 Ingredients, preparation and nutrition</p> : recipe.sourceUrl ? <p className="mt-3 text-xs text-text">Online recipe from TheMealDB</p> : <div className="mt-3 flex items-center gap-3 text-xs text-text">
+                  <span className="flex items-center gap-1">
+                    <ClockIcon /> {recipe.time}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <FlameIcon /> {recipe.kcal ?? "—"} kcal
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <BoltIcon /> {recipe.protein ?? "—"}g Protein
+                  </span>
+                </div>}
+                {isSignedIn ? <p className="mt-3 text-xs font-semibold text-accent">Click for ingredients, preparation and nutrition →</p> : <p className="mt-3 text-xs font-semibold text-accent">Log in to view full recipe →</p>}
+              </div>
+            </article>
+          ))}
+        </div>
       )}
 
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 -translate-x-full flex-col border-r border-border bg-surface p-5 transition-transform md:static md:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : ""
-        }`}
-      >
-        <Link to="/" className="mb-8 flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-              <path
-                d="M12 20.5c-.3 0-.6-.1-.8-.3-2.2-1.9-4.1-3.6-5.5-5.3C4.1 13 3 11.1 3 9.2 3 6.6 5 4.6 7.5 4.6c1.4 0 2.7.6 3.6 1.7l.9 1 .9-1c.9-1.1 2.2-1.7 3.6-1.7 2.5 0 4.5 2 4.5 4.6 0 1.9-1.1 3.8-2.7 5.7-1.4 1.7-3.3 3.4-5.5 5.3-.2.2-.5.3-.8.3Z"
-                stroke="#ffffff"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <span className="text-lg font-extrabold text-text-h">
-            Fit<span className="text-accent">Meal</span>
-          </span>
-        </Link>
+      {selectedRecipe && isSignedIn && <RecipeDetails recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} onAddToPlan={addRecipeToPlan} planFeedback={planFeedback} />}
+    </AppShell>
+  );
+}
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
-          {SIDEBAR_LINKS.map((link) => {
-            const active = link.to === "/recipes";
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
-                  active
-                    ? "bg-accent-bg text-accent"
-                    : "text-text hover:bg-bg hover:text-text-h"
-                }`}
-              >
-                <link.icon />
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
+function RecipeDetails({ recipe, onClose, onAddToPlan, planFeedback }) {
+  const nutrients = [
+    ["Calories", recipe.kcal, "kcal"],
+    ["Protein", recipe.protein, "g"],
+    ["Carbs", recipe.carbs, "g"],
+    ["Fat", recipe.fat, "g"],
+    ["Fiber", recipe.fiber, "g"],
+  ];
+  const hasCompleteNutrition = nutrients.every(([, value]) => value !== null && value !== undefined);
 
-        <div className="mt-4 flex flex-col gap-3">
-          <div className="rounded-lg bg-accent-bg p-4 text-center">
-            <p className="mb-1 text-sm font-semibold text-text-h">
-              Go Premium
-            </p>
-            <p className="mb-3 text-xs text-text">
-              Unlock more features and achieve your goals faster.
-            </p>
-            <button
-              type="button"
-              className="w-full rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition-opacity hover:opacity-85"
-            >
-              Upgrade Now
-            </button>
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+    <article role="dialog" aria-modal="true" aria-labelledby="recipe-detail-title" onClick={(event) => event.stopPropagation()} className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg border border-border bg-bg shadow-xl">
+      <div className="relative grid md:grid-cols-2">
+        {recipe.image ? <img src={recipe.image} alt={recipe.title} className="h-full max-h-96 w-full object-cover md:max-h-none" /> : <div className="flex min-h-64 items-center justify-center bg-accent-bg text-6xl">🍽️</div>}
+        <div className="p-6 sm:p-8">
+          <button type="button" onClick={onClose} aria-label="Close recipe" className="float-right flex h-9 w-9 items-center justify-center rounded-full border border-border text-xl">×</button>
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent">{recipe.tags?.join(" · ") || "Online recipe"}</p>
+          <h2 id="recipe-detail-title" className="mt-2 pr-10 text-2xl!">{recipe.title}</h2>
+          <p className="mt-3 text-sm text-text">{recipe.description}</p>
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">{nutrients.map(([label, value, unit]) => <div key={label} className="rounded-md border border-border bg-surface p-3 text-center"><p className="text-xs text-text">{label}</p><p className="mt-1 font-semibold text-text-h">{value ?? "—"}{value !== null && value !== undefined ? ` ${unit}` : ""}</p></div>)}</div>
+          {!hasCompleteNutrition && <p className="mt-3 text-xs text-text">The external recipe provider does not supply verified nutrition values for this meal.</p>}
+          <div className="mt-6 grid gap-6 sm:grid-cols-2">
+            <section><h3 className="text-lg!">Ingredients</h3>{recipe.ingredients?.length ? <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">{recipe.ingredients.map((ingredient, index) => <li key={`${ingredient}-${index}`}>{ingredient}</li>)}</ul> : <p className="mt-2 text-sm">No ingredients provided.</p>}</section>
+            <section><h3 className="text-lg!">Preparation</h3>{recipe.instructions?.length ? <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">{recipe.instructions.map((step, index) => <li key={index} className="whitespace-pre-line">{step}</li>)}</ol> : <p className="mt-2 text-sm">No preparation provided.</p>}</section>
           </div>
-          <Link
-            to="/settings"
-            onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text hover:bg-bg hover:text-text-h"
-          >
-            <GearIcon />
-            Settings
-          </Link>
+          {planFeedback && <div role={planFeedback.type === "warning" ? "alert" : "status"} className={`mt-6 rounded-md border p-4 text-sm ${planFeedback.type === "warning" ? "border-amber-400 bg-amber-50 text-amber-900" : "border-accent-border bg-accent-bg text-text-h"}`}>{planFeedback.text}{planFeedback.setup && <Link to="/meal-planner" onClick={onClose} className="ml-2 font-semibold text-accent underline">Set up Meal Planner</Link>}</div>}
+          <div className="mt-6 flex flex-wrap gap-3"><button type="button" onClick={() => onAddToPlan(recipe)} disabled={recipe.kcal === null || recipe.kcal === undefined} className="rounded-pill bg-accent px-5 py-2 text-sm font-semibold text-accent-ink disabled:cursor-not-allowed disabled:opacity-50">Add to today’s meal plan</button>{recipe.sourceUrl && <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-pill border border-accent-border px-4 py-2 text-sm font-semibold text-accent">View original source ↗</a>}</div>
+          {(recipe.kcal === null || recipe.kcal === undefined) && <p className="mt-2 text-xs text-text">Meal-plan check unavailable because the source provides no verified calories.</p>}
         </div>
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-4 border-b border-border bg-surface px-4 py-3 sm:px-6">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open menu"
-            className="text-text-h md:hidden"
-          >
-            <MenuIcon />
-          </button>
-
-          <div className="relative flex-1 max-w-xl">
-            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-text">
-              <SearchIcon />
-            </span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search recipes, ingredients..."
-              className="w-full rounded-pill border border-border bg-bg py-2 pr-4 pl-10 text-sm text-text-h outline-none focus:border-accent-border"
-            />
-          </div>
-
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="hidden text-text hover:text-text-h sm:block"
-          >
-            <BellIcon />
-          </button>
-          <button
-            type="button"
-            aria-label="Calendar"
-            className="hidden text-text hover:text-text-h sm:block"
-          >
-            <CalendarIcon />
-          </button>
-
-          <div className="flex items-center gap-2">
-            {user?.imageUrl ? (
-              <img
-                src={user.imageUrl}
-                alt=""
-                className="h-9 w-9 rounded-full object-cover"
-              />
-            ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-bg text-sm font-semibold text-text-h">
-                {(user?.firstName ?? "?").slice(0, 1)}
-              </span>
-            )}
-            <span className="hidden text-sm font-medium text-text-h md:block">
-              {user?.fullName ?? user?.firstName ?? "Account"}
-            </span>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <h1 className="mb-1! text-2xl! sm:text-3xl!">Recipes</h1>
-          <p className="text-text">
-            Discover healthy and delicious recipes to fuel your goals.
-          </p>
-
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            {FILTERS.map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                onClick={() => setActiveFilter(filter)}
-                className={`rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors ${
-                  activeFilter === filter
-                    ? "border-accent bg-accent text-accent-ink"
-                    : "border-border bg-surface text-text hover:border-accent-border"
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => setActiveCategory(cat.key)}
-                className={`flex flex-col items-center gap-2 rounded-lg border p-3 text-xs font-medium transition-colors ${
-                  activeCategory === cat.key
-                    ? "border-accent bg-accent-bg text-text-h"
-                    : "border-border bg-surface text-text hover:border-accent-border"
-                }`}
-              >
-                <span className="text-xl">{cat.emoji}</span>
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          {visible.length === 0 ? (
-            <p className="mt-10 text-center text-text">
-              No recipes match your search.
-            </p>
-          ) : (
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {visible.map((recipe) => (
-                <div
-                  key={recipe.id}
-                  className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
-                >
-                  <div className="relative">
-                    <img
-                      src={recipe.image}
-                      alt={recipe.title}
-                      className="aspect-square w-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => toggleFavorite(recipe.id)}
-                      aria-label={
-                        favorites.has(recipe.id)
-                          ? "Remove from favorites"
-                          : "Add to favorites"
-                      }
-                      className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-surface/90 shadow-sm"
-                    >
-                      <HeartIcon filled={favorites.has(recipe.id)} />
-                    </button>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="mb-1! text-base! font-medium text-text-h">
-                      {recipe.title}
-                    </h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      {recipe.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-pill bg-accent-bg px-2 py-0.5 text-[11px] font-medium text-text-h"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-3 flex items-center gap-3 text-xs text-text">
-                      <span className="flex items-center gap-1">
-                        <ClockIcon /> {recipe.time}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <FlameIcon /> {recipe.kcal} kcal
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BoltIcon /> {recipe.protein}g Protein
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-8 flex justify-center">
-            <button
-              type="button"
-              className="rounded-pill border border-border bg-surface px-6 py-2.5 text-sm font-medium text-text-h hover:border-accent-border"
-            >
-              Load More Recipes
-            </button>
-          </div>
-        </main>
       </div>
-    </div>
-  );
-}
-
-function MenuIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-      <path
-        d="M4 6h16M4 12h16M4 18h16"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="m20 20-4.3-4.3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-      <path
-        d="M6 10a6 6 0 1 1 12 0c0 3.5 1 5 1.5 6H4.5C5 15 6 13.5 6 10Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 19a2 2 0 0 0 4 0"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M12 7.5V12l3 2"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function FlameIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-      <path
-        d="M12 21c-4 0-6.5-2.7-6.5-6.2 0-3 1.8-4.9 2.9-7.1.5-1 .8-2 .8-3.2 2 1 3.3 3 3.3 5.3 1.6-1.1 2-2.8 2-4.3 2.3 1.6 3.5 4.6 3.5 7.3 0 4.4-2.6 8.2-6 8.2Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function BoltIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-      <path
-        d="M13 3 4 14h6l-1 7 9-11h-6l1-7Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function HomeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <path
-        d="M4 11.5 12 4l8 7.5M6 10v9a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1v-9"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function BookIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <path
-        d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5A1.5 1.5 0 0 1 18.5 20H6.5A2.5 2.5 0 0 1 4 17.5v-12Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function DumbbellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <path
-        d="M4 9v6M2 10.5v3M8 7v10M16 7v10M20 10.5v3M22 9v6M8 12h8"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function UtensilsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <path
-        d="M7 3v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3M9 3v18M17 3c-1.7 0-3 2.5-3 5.5S15.3 14 17 14s3-2.5 3-5.5S18.7 3 17 3ZM17 14v7"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <rect
-        x="3.5"
-        y="5"
-        width="17"
-        height="15.5"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path
-        d="M3.5 9.5h17M8 3v4M16 3v4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ChartIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <path
-        d="M4 20V10M11 20V4M18 20v-7"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CartIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <path
-        d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h7.4a2 2 0 0 0 2-1.6L20.5 8H6"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="9.5" cy="21" r="1.4" fill="currentColor" />
-      <circle cx="17" cy="21" r="1.4" fill="currentColor" />
-    </svg>
-  );
-}
-
-function GearIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M12 3.5v2M12 18.5v2M4.9 6.9l1.4 1.4M17.7 15.7l1.4 1.4M3.5 12h2M18.5 12h2M4.9 17.1l1.4-1.4M17.7 8.3l1.4-1.4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function HeartIcon({ filled }) {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <path
-        d="M12 20.5c-.3 0-.6-.1-.8-.3-2.2-1.9-4.1-3.6-5.5-5.3C4.1 13 3 11.1 3 9.2 3 6.6 5 4.6 7.5 4.6c1.4 0 2.7.6 3.6 1.7l.9 1 .9-1c.9-1.1 2.2-1.7 3.6-1.7 2.5 0 4.5 2 4.5 4.6 0 1.9-1.1 3.8-2.7 5.7-1.4 1.7-3.3 3.4-5.5 5.3-.2.2-.5.3-.8.3Z"
-        stroke={filled ? "#ef4444" : "currentColor"}
-        fill={filled ? "#ef4444" : "none"}
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+    </article>
+  </div>;
 }

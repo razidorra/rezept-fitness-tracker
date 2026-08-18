@@ -1,6 +1,9 @@
-// TODO: Formular (email/password), State-Handling, Submit -> POST /api/auth/register
-// siehe server/spec.md für Request/Response-Format und Fehlerfälle (400/409)
+import { SignUp } from "@clerk/clerk-react";
 
 export default function RegisterPage() {
-  return <h1>Sign Up</h1>;
+  return (
+    <div className="flex justify-center pt-8">
+      <SignUp routing="hash" signInUrl="/login" fallbackRedirectUrl="/" />
+    </div>
+  );
 }

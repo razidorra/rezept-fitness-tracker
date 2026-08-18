@@ -3,7 +3,20 @@
 //
 // Siehe server/spec.md, Abschnitt "Recipes" für Request/Response-Format.
 
-// TODO: searchRecipes(query) -> apiRequest(`/recipes/search?query=${query}`, { auth: true })
-// TODO: saveRecipe(recipeData) -> apiRequest("/recipes", { method: "POST", auth: true, body: recipeData })
-// TODO: getSavedRecipes() -> apiRequest("/recipes", { auth: true })
-// TODO: deleteRecipe(id) -> apiRequest(`/recipes/${id}`, { method: "DELETE", auth: true })
+import { apiRequest } from "../../../shared/api/apiClient.js";
+
+export function searchRecipes(query) {
+  return apiRequest(`/recipes/search?${new URLSearchParams({ query })}`, { auth: true });
+}
+
+export function saveRecipe(recipeData) {
+  return apiRequest("/recipes", { method: "POST", auth: true, body: recipeData });
+}
+
+export function getSavedRecipes() {
+  return apiRequest("/recipes", { auth: true });
+}
+
+export function deleteRecipe(id) {
+  return apiRequest(`/recipes/${encodeURIComponent(id)}`, { method: "DELETE", auth: true });
+}

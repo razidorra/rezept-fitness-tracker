@@ -1,211 +1,263 @@
 # API-Spezifikation – FitMeal Backend
 
-Formale Beschreibung aller API-Endpunkte: Request/Response-Format, Statuscodes, Auth-Anforderungen. Für den allgemeinen Projektüberblick siehe [README.md](README.md).
-
-**Legende:** ✅ implementiert · 🚧 spezifiziert, noch nicht implementiert
+Implementierter REST-Vertrag des Backends. Client-Verhalten und Routen stehen in [`../client/spec.md`](../client/spec.md).
 
 ## Basis
 
-- Base-URL (lokal): `http://localhost:5000/api`
-- Format: JSON (`Content-Type: application/json`) für Request- und Response-Bodies
-- Datumswerte: ISO 8601 (`YYYY-MM-DD` oder vollständiger Timestamp)
-- Fehler-Format (einheitlich für alle Endpunkte):
-  ```json
-  { "error": "Beschreibung des Fehlers" }
-  ```
+- lokale Base-URL: `http://localhost:5000/api`
+- Request/Response: JSON, außer `204 No Content`
+- Datumswerte: `YYYY-MM-DD` oder gültiger ISO-8601-Timestamp
+- Fehlerformat:
+
+```json
+{ "error": "Beschreibung des Fehlers" }
+```
+
+- unbekannte Route: `404 { "error": "Endpunkt nicht gefunden" }`
+- ungültiger JSON-Objekt-Body: `400`
+- nicht behandelter Serverfehler: `500`
 
 ## Authentifizierung
 
-- JWT (JSON Web Token), ausgestellt von `POST /api/auth/register` und `POST /api/auth/login`
-- Gültigkeit: 7 Tage
-- Geschützte Endpunkte erwarten den Token im Header:
-  ```
-  Authorization: Bearer <token>
-  ```
-- Geprüft wird das über `middleware/requireAuth.js`. Bei fehlendem/ungültigem Token: `401 { "error": "..." }`. Die `userId` aus dem Token steht Handlern danach als `req.userId` zur Verfügung.
+Geschützte Endpunkte erwarten:
+
+```http
+Authorization: Bearer <Clerk session JWT>
+```
+
+`clerkMiddleware()` verifiziert das JWT. `requireAuth` setzt `req.userId` aus der authentifizierten Clerk-Sitzung. Fehlende oder ungültige Authentifizierung ergibt `401`.
 
 ---
 
 ## Health
 
-### `GET /api/health` ✅
-Verfügbarkeits-Check, kein Auth nötig.
+### `GET /api/health` – öffentlich
 
-**Response `200`**
+Mit MongoDB-Verbindung:
+
 ```json
-{ "status": "ok" }
+{ "status": "ok", "database": "connected" }
 ```
+
+- `200`: Datenbank verbunden
+- `503`: Server erreichbar, Datenbank nicht verbunden
 
 ---
 
-## Auth (`/api/auth`)
+## Catalog – öffentlich
 
-### `POST /api/auth/register` ✅
-Legt einen neuen Nutzer an.
+Die Katalog-Routen normalisieren externe Anbieter in stabile interne Objekte.
 
-**Request Body**
-```json
-{ "email": "user@example.com", "password": "mindestens8Zeichen" }
-```
+### `GET /api/catalog/foods?query=<2..100 Zeichen>`
 
-| Feld | Typ | Pflicht | Regel |
-|---|---|---|---|
-| `email` | string | ja | muss eindeutig sein (unique in DB) |
-| `password` | string | ja | mind. 8 Zeichen |
+Open Food Facts mit USDA-Fallback.
 
-**Response `201`**
-```json
-{ "token": "<jwt>", "user": { "id": "...", "email": "user@example.com" } }
-```
-
-**Fehler:** `400` (Feld fehlt / Passwort zu kurz) · `409` (E-Mail bereits registriert) · `500`
-
-### `POST /api/auth/login` ✅
-Meldet einen bestehenden Nutzer an.
-
-**Request Body**
-```json
-{ "email": "user@example.com", "password": "mindestens8Zeichen" }
-```
-
-**Response `200`**
-```json
-{ "token": "<jwt>", "user": { "id": "...", "email": "user@example.com" } }
-```
-
-**Fehler:** `400` (Feld fehlt) · `401` (E-Mail oder Passwort falsch) · `500`
-
----
-
-## Recipes (`/api/recipes`) ✅
-
-Alle Endpunkte erfordern Auth (`Authorization: Bearer <token>`).
-
-### `GET /api/recipes/search?query=<string>` ✅
-Fragt die externe [Spoonacular API](https://spoonacular.com/food-api) ab (nutzt `SPOONACULAR_API_KEY`), speichert nichts.
-
-**Response `200`**
 ```json
 [
-  { "externalId": "12345", "title": "Pasta Bolognese", "imageUrl": "...", "calories": 650, "protein": 30, "carbs": 70, "fat": 20 }
+  {
+    "id": "123",
+    "name": "Greek Yogurt",
+    "brand": "Example",
+    "imageUrl": "https://...",
+    "nutritionGrade": "a",
+    "per": "100 g",
+    "calories": 120,
+    "protein": 9,
+    "carbs": 5,
+    "fat": 6,
+    "sourceUrl": "https://...",
+    "source": "Open Food Facts"
+  }
 ]
 ```
 
-**Fehler:** `400` (kein `query`) · `401` (kein/ungültiger Token) · `502` (Spoonacular nicht erreichbar/Limit erschöpft)
+- `400`: Query fehlt, ist kürzer als zwei oder länger als 100 Zeichen
+- `502`: beide externen Quellen nicht erreichbar
 
-### `POST /api/recipes` ✅
-Speichert ein Rezept (z.B. aus den Suchergebnissen) für den eingeloggten Nutzer.
+### `GET /api/catalog/meals?query=<optional, max. 100 Zeichen>`
 
-**Request Body**
+TheMealDB-Suche; ohne Query werden mehrere zufällige, deduplizierte Gerichte geladen.
+
 ```json
-{ "externalId": "12345", "title": "Pasta Bolognese", "imageUrl": "...", "calories": 650, "protein": 30, "carbs": 70, "fat": 20 }
+[
+  {
+    "id": "52772",
+    "name": "Teriyaki Chicken Casserole",
+    "imageUrl": "https://...",
+    "category": "Chicken",
+    "area": "Japanese",
+    "instructions": "...",
+    "sourceUrl": "https://...",
+    "ingredients": [{ "name": "soy sauce", "measure": "3/4 cup" }],
+    "source": "TheMealDB"
+  }
+]
 ```
 
-| Feld | Typ | Pflicht |
-|---|---|---|
-| `externalId` | string | ja |
-| `title` | string | ja |
-| `imageUrl` | string | nein |
-| `calories`, `protein`, `carbs`, `fat` | number | nein |
+- `400`: Query länger als 100 Zeichen
+- `502`: TheMealDB nicht erreichbar
 
-**Response `201`**: das gespeicherte `SavedRecipe`-Dokument (inkl. `_id`, `user`, Zeitstempel).
+TheMealDB liefert keine verifizierten Makronährwerte; der Server erfindet deshalb keine.
 
-**Fehler:** `400` (Pflichtfeld fehlt) · `401`
+### `GET /api/catalog/exercises?query=<2..100 Zeichen>` – Legacy
 
-### `GET /api/recipes` ✅
-Liste aller gespeicherten Rezepte des eingeloggten Nutzers.
+Liest englische wger-Übungsübersetzungen, filtert serverseitig und liefert maximal zwölf Ergebnisse.
 
-**Response `200`**: Array von `SavedRecipe`-Dokumenten.
+```json
+[{ "id": "1", "name": "Squat", "description": "...", "sourceUrl": "https://...", "source": "wger" }]
+```
 
-### `DELETE /api/recipes/:id` ✅
-Löscht ein gespeichertes Rezept (muss dem eingeloggten Nutzer gehören).
-
-**Response `204`** (kein Body)
-**Fehler:** `401` · `404` (nicht gefunden oder gehört nicht dem Nutzer)
+Der Endpunkt bleibt kompatibel, wird von der aktuellen Nutrition-Oberfläche aber nicht verlinkt.
 
 ---
 
-## Tracking (`/api/tracking`) 🚧
+## Recipes – geschützt
 
-Alle Endpunkte erfordern Auth.
+Alle Routen unter `/api/recipes` benötigen Clerk-Auth.
 
-### `GET /api/tracking?from=YYYY-MM-DD&to=YYYY-MM-DD` 🚧
-Liste der Tracking-Einträge des eingeloggten Nutzers, optional gefiltert nach Zeitraum (`from`/`to` optional; ohne Angabe: alle Einträge).
+### `GET /api/recipes/search?query=<1..100 Zeichen>` – Legacy
 
-**Response `200`**: Array von `TrackingEntry`-Dokumenten.
+Ruft Spoonacular `complexSearch` mit Nutrition-Daten auf.
 
-### `POST /api/tracking` 🚧
-Legt einen neuen Tracking-Eintrag an (geloggte Mahlzeit/Werte für einen Tag).
-
-**Request Body**
 ```json
-{ "recipe": "<SavedRecipe-Id>", "customTitle": "Frühstück", "calories": 450, "protein": 20, "carbs": 50, "fat": 15, "loggedDate": "2026-08-17" }
+[{ "externalId": "123", "title": "Pasta", "imageUrl": "https://...", "calories": 650, "protein": 30, "carbs": 70, "fat": 20 }]
 ```
 
-| Feld | Typ | Pflicht | Hinweis |
-|---|---|---|---|
-| `recipe` | ObjectId | nein | Referenz auf ein `SavedRecipe`; wenn nicht gesetzt, wird `customTitle` erwartet |
-| `customTitle` | string | nein | freier Titel, falls kein `recipe` verknüpft ist |
-| `calories` | number | ja | |
-| `protein`, `carbs`, `fat` | number | nein | |
-| `loggedDate` | date | nein | Default: aktueller Zeitpunkt |
+- `400`: Query fehlt/zu lang
+- `401`: nicht angemeldet
+- `502`: Key fehlt/ungültig, Rate-Limit oder Spoonacular-Ausfall
 
-**Response `201`**: das erstellte `TrackingEntry`-Dokument.
+Die aktuelle UI nutzt für Online-Rezepte primär `/api/catalog/meals`.
 
-**Fehler:** `400` (`calories` fehlt) · `401`
+### `POST /api/recipes`
 
-### `DELETE /api/tracking/:id` 🚧
-Löscht einen Tracking-Eintrag (muss dem eingeloggten Nutzer gehören).
-
-**Response `204`**
-**Fehler:** `401` · `404`
-
----
-
-## Workouts (`/api/workouts`) 🚧
-
-Alle Endpunkte erfordern Auth. Noch nicht implementiert — Ordnergerüst (`features/workouts/`) existiert, Model/Logik fehlen noch.
-
-### `GET /api/workouts` 🚧
-Liste der Workouts des eingeloggten Nutzers.
-
-**Response `200`**: Array von `Workout`-Dokumenten.
-
-### `POST /api/workouts` 🚧
-Legt ein neues Workout an, inkl. eingebetteter Übungen.
-
-**Request Body**
 ```json
 {
-  "name": "Chest & Triceps",
-  "duration": 45,
-  "date": "2026-08-17",
-  "exercises": [
-    { "name": "Bench Press", "sets": 4, "reps": 10, "weight": 60 },
-    { "name": "Tricep Pushdown", "sets": 3, "reps": 15, "weight": 30 }
-  ]
+  "externalId": "static:protein-oatmeal",
+  "title": "Protein Oatmeal",
+  "imageUrl": "https://...",
+  "calories": 420,
+  "protein": 28,
+  "carbs": 52,
+  "fat": 11
 }
 ```
 
-| Feld | Typ | Pflicht | Hinweis |
-|---|---|---|---|
-| `name` | string | ja | Name des Workouts |
-| `duration` | number | nein | Dauer in Minuten |
-| `date` | date | nein | Default: aktueller Zeitpunkt |
-| `exercises` | array | nein | jedes Element: `{ name, sets, reps, weight }` — eingebettetes Sub-Schema, keine eigene Collection |
+- Pflicht: `externalId` (max. 100), `title` (max. 200)
+- optional: `imageUrl` (max. 2000), nichtnegative Nutrition-Zahlen
+- `201`: gespeichertes `SavedRecipe`
+- `400`: Validierung
+- `409`: dasselbe externe Rezept für denselben Nutzer bereits vorhanden
 
-**Response `201`**: das erstellte `Workout`-Dokument.
+### `GET /api/recipes`
 
-**Fehler:** `400` (`name` fehlt) · `401`
+Liefert die gespeicherten Rezepte des aktuellen Nutzers, neueste zuerst.
 
-### `DELETE /api/workouts/:id` 🚧
-Löscht ein Workout (muss dem eingeloggten Nutzer gehören).
+### `DELETE /api/recipes/:id`
 
-**Response `204`**
-**Fehler:** `401` · `404`
+- `204`: gelöscht
+- `400`: ungültige ObjectId
+- `404`: nicht vorhanden oder gehört einem anderen Nutzer
 
 ---
 
-## Datenmodelle
+## Tracking – geschützt
 
-Siehe [README.md](README.md#datenmodelle) für die Mongoose-Schemas (`User`, `SavedRecipe`, `TrackingEntry`) mit Feldtypen und Beziehungen. `Workout` ist noch offen — Felder siehe oben; `exercises` als eingebettetes Array (kein eigenes Model/Collection), analog dazu, wie `TrackingEntry` einzelne Werte direkt trägt statt zu referenzieren.
+### `GET /api/tracking?from=YYYY-MM-DD&to=YYYY-MM-DD`
+
+Liefert persönliche Einträge, optional inklusive Start- und Endtag gefiltert.
+
+- beide Filter sind unabhängig optional
+- `400`: ungültiges Datum oder `from > to`
+
+### `POST /api/tracking`
+
+```json
+{
+  "customTitle": "Breakfast: Protein Oatmeal",
+  "calories": 420,
+  "protein": 28,
+  "carbs": 52,
+  "fat": 11,
+  "loggedDate": "2026-08-18"
+}
+```
+
+Alternativ kann `recipe` eine gültige `SavedRecipe`-ObjectId enthalten.
+
+| Feld | Regel |
+|---|---|
+| `recipe` | optional, gültige ObjectId |
+| `customTitle` | erforderlich, wenn `recipe` fehlt; max. 200 Zeichen |
+| `calories` | erforderlich, endliche nichtnegative Zahl |
+| `protein`, `carbs`, `fat` | optional, endliche nichtnegative Zahlen |
+| `loggedDate` | optional, gültiges ISO-Datum; Default im Modell |
+
+- `201`: erstelltes `TrackingEntry`
+- `400`: ungültige Daten
+
+### `DELETE /api/tracking/:id`
+
+- `204`: gelöscht
+- `400`: ungültige ObjectId
+- `404`: nicht vorhanden oder fremder Eintrag
+
+---
+
+## Workouts – geschützt, Legacy
+
+Die Routen bleiben aus Kompatibilitätsgründen implementiert, werden in der aktuellen Nutrition-UI jedoch nicht geroutet.
+
+### `GET /api/workouts`
+
+Liefert nur Workouts des aktuellen Nutzers.
+
+### `POST /api/workouts`
+
+```json
+{
+  "name": "Full Body",
+  "duration": 45,
+  "date": "2026-08-18",
+  "exercises": [{ "name": "Squat", "sets": 3, "reps": 10, "weight": 40 }]
+}
+```
+
+- `name`: Pflicht, max. 200 Zeichen
+- `duration`: optional, nichtnegative Zahl
+- `date`: optional, gültiges ISO-Datum
+- `exercises`: optional, maximal 50 Elemente
+- Übung: `name` Pflicht (max. 120), `sets`/`reps`/`weight` optional und nichtnegativ
+- `201`: erstelltes Workout
+- `400`: ungültige Daten
+
+### `DELETE /api/workouts/:id`
+
+- `204`: gelöscht
+- `400`: ungültige ObjectId
+- `404`: nicht vorhanden oder fremdes Workout
+
+---
+
+## Datenmodelle und Ownership
+
+- `SavedRecipe`: eindeutige Kombination aus `user` und `externalId`
+- `TrackingEntry`: optionaler Verweis auf `SavedRecipe`
+- `Workout`: eingebettete Exercises ohne eigene IDs
+- alle drei Modelle speichern Clerk `userId` als String im Feld `user`
+- Service-Lese- und Löschoperationen filtern immer nach `user`
+
+## Statuscodes
+
+| Code | Bedeutung |
+|---:|---|
+| `200` | erfolgreiche Abfrage |
+| `201` | Ressource erstellt |
+| `204` | erfolgreich gelöscht, kein Body |
+| `400` | Eingabe ungültig |
+| `401` | nicht authentifiziert |
+| `404` | Route oder eigene Ressource nicht gefunden |
+| `409` | Duplikat |
+| `500` | interner Fehler |
+| `502` | externe Datenquelle fehlgeschlagen |
+| `503` | Datenbank nicht bereit |

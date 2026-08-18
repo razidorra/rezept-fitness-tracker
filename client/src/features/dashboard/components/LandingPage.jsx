@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import heroBowl from "../../../assets/hero-bowl.jpg";
 
@@ -10,12 +9,6 @@ import heroBowl from "../../../assets/hero-bowl.jpg";
 // komprimierte Version von assets/Hero.png (Original ~2.8MB PNG, unverändert
 // im Ordner belassen). Quelle/Rechte am Originalfoto liegen beim Projekt.
 //
-// Videos: public/videos/*.mp4 -- von Pexels (pexels.com/search/videos/workout),
-// heruntergeladen + mit ffmpeg auf Web-Größe transkodiert (1280x720, ohne Ton,
-// da Original-Clips keine Tonspur mit Inhalt hatten). Direkt unter public/
-// abgelegt statt importiert, weil Vite Videos sonst durch den JS-Bundle-Hash
-// jagt -- als statische Datei reicht ein einfacher /videos/...-Pfad.
-
 const FEATURES = [
   {
     icon: <UtensilsIcon />,
@@ -30,16 +23,16 @@ const FEATURES = [
     to: "/recipes",
   },
   {
-    icon: <DumbbellIcon />,
-    title: "Workout Plans",
-    description: "Custom workouts for all fitness levels.",
-    to: "/workouts",
+    icon: <ChartIcon />,
+    title: "Meal Planning",
+    description: "Build a daily plan around your nutrition goals.",
+    to: "/meal-planner",
   },
   {
     icon: <ChartIcon />,
-    title: "See Progress",
-    description: "Visualize your progress and stay motivated.",
-    to: "/tracking",
+    title: "Food Database",
+    description: "Look up nutrition values for real products.",
+    to: "/nutrition",
   },
 ];
 
@@ -49,17 +42,7 @@ const MEALS = [
   { label: "Dinner", name: "Salmon & Veggies", kcal: 540, protein: 38 },
 ];
 
-export default function LandingPage() {
-  const [demoOpen, setDemoOpen] = useState(false);
-
-  // Esc schließt das Modal, ohne dass man erst die Maus zum X bewegen muss.
-  useEffect(() => {
-    if (!demoOpen) return;
-    const onKeyDown = (e) => e.key === "Escape" && setDemoOpen(false);
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [demoOpen]);
-
+export default function LandingPage({ authenticated = false }) {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-24 pb-16">
       {/* Hero */}
@@ -68,31 +51,30 @@ export default function LandingPage() {
           <span className="rounded-pill bg-accent-bg px-3 py-1 text-xs font-semibold tracking-wide text-accent uppercase">
             Track. Eat. Achieve.
           </span>
-          <h1 className="text-4xl! leading-tight! md:text-5xl!">
-            Your Fitness Journey Starts with{" "}
+          <h1 className="text-5xl! leading-[0.98]! font-bold! md:text-7xl! lg:text-[5.5rem]!">
+            Healthier Eating Starts with{" "}
             <span className="text-accent">Every Meal</span>
           </h1>
           <p className="max-w-md text-text">
-            FitMeal helps you track your nutrition, discover healthy recipes,
-            and reach your fitness goals -- all in one place.
+            FitMeal helps you understand nutrition, discover balanced recipes,
+            plan meals and build eating habits that work in everyday life.
           </p>
           <div className="flex flex-wrap items-center gap-5">
             <Link
-              to="/register"
+              to={authenticated ? "/recipes" : "/register"}
               className="rounded-pill bg-accent px-6 py-3 font-semibold text-accent-ink shadow-sm transition-opacity hover:opacity-85"
             >
-              Get Started Free
+              {authenticated ? "Explore Recipes" : "Get Started Free"}
             </Link>
-            <button
-              type="button"
-              onClick={() => setDemoOpen(true)}
+            <a
+              href="#how-it-works"
               className="flex items-center gap-2 text-sm font-medium text-text-h"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-full border border-border">
                 <PlayIcon />
               </span>
-              Watch Demo
-            </button>
+              How FitMeal works
+            </a>
           </div>
           <div className="flex items-center gap-3 pt-2">
             <div className="flex -space-x-2">
@@ -106,8 +88,8 @@ export default function LandingPage() {
               ))}
             </div>
             <p className="text-sm text-text">
-              Join <span className="font-semibold text-text-h">10,000+</span>{" "}
-              users and start your transformation today!
+              <span className="font-semibold text-text-h">Clear nutrition tools</span>{" "}
+              for everyday meals, personal goals and informed choices.
             </p>
           </div>
         </div>
@@ -153,8 +135,8 @@ export default function LandingPage() {
           Everything You Need to Succeed
         </h2>
         <p className="max-w-xl text-text">
-          FitMeal combines nutrition tracking, healthy recipes, and workout
-          planning to help you build healthy habits and achieve your goals.
+          FitMeal combines nutrition tracking, healthy recipes and practical
+          meal planning to make balanced eating easier to understand.
         </p>
 
         <div className="mt-6 grid gap-6 text-left md:grid-cols-3">
@@ -171,58 +153,108 @@ export default function LandingPage() {
             to="/recipes"
           />
           <DetailCard
-            icon={<DumbbellIcon />}
-            title="Plan Workouts"
-            description="Put together workouts for any level and track your progress."
-            to="/workouts"
+            icon={<ChartIcon />}
+            title="Plan Balanced Days"
+            description="Choose meals and drinks, compare them with your estimated daily target, and adjust your choices."
+            to="/meal-planner"
           />
         </div>
       </section>
 
+      {/* Kurze FitMeal-Story: Das Video liegt bereits im horizontalen 16:9-Format vor. */}
+      <section
+        aria-labelledby="fitmeal-video-title"
+        className="overflow-hidden rounded-lg border border-accent-border bg-black shadow-xl"
+      >
+        <div className="relative aspect-video">
+          <video
+            className="h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls
+            preload="metadata"
+            aria-label="A short introduction to FitMeal"
+          >
+            <source
+              src="/make_it_horizontal_and_can_u_p.mp4"
+              type="video/mp4"
+            />
+            Your browser does not support HTML video.
+          </video>
+          <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 via-black/30 to-transparent px-6 py-6 sm:px-10 sm:py-9">
+            <span className="text-xs font-semibold tracking-wide text-accent uppercase">
+              Made for everyday life
+            </span>
+            <h2
+              id="fitmeal-video-title"
+              className="mt-2 max-w-xl text-2xl! text-white! sm:text-4xl!"
+            >
+              Healthy eating, made easier
+            </h2>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="scroll-mt-24">
+        <div className="text-center"><span className="text-xs font-semibold uppercase tracking-wide text-accent">Simple by design</span><h2 className="mt-2 text-2xl! md:text-3xl!">From food choice to daily overview</h2><p className="mx-auto mt-3 max-w-2xl text-text">Use FitMeal as a practical companion—not as a replacement for individual medical or dietary advice.</p></div>
+        <div className="mt-8 grid gap-4 md:grid-cols-4">{[
+          ["1", "Discover", "Browse balanced recipes or search trusted public food databases."],
+          ["2", "Understand", "Compare calories, protein, carbohydrates, fat and fibre."],
+          ["3", "Plan", "Combine meals, drinks and personal choices into one daily plan."],
+          ["4", "Reflect", "Review seven-day nutrition trends and build consistent habits."],
+        ].map(([number, title, text]) => <article key={number} className="rounded-lg border border-border bg-surface p-5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-ink">{number}</span><h3 className="mt-4 text-base!">{title}</h3><p className="mt-2 text-sm text-text">{text}</p></article>)}</div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-surface p-6 sm:p-9">
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]"><div><span className="text-xs font-semibold uppercase tracking-wide text-accent">Nutrition basics</span><h2 className="mt-2 text-2xl!">A healthy diet is more than counting calories</h2><p className="mt-3 text-text">The WHO describes four foundations of healthy eating: adequacy, balance, moderation and diversity. Individual needs still vary with age, lifestyle, culture and health.</p><div className="mt-5 flex flex-wrap gap-3"><a href="https://www.who.int/news-room/fact-sheets/detail/healthy-diet" target="_blank" rel="noreferrer" className="text-sm font-semibold text-accent">WHO guidance ↗</a><a href="https://www.dge.de/gesunde-ernaehrung/gut-essen-und-trinken/dge-empfehlungen/" target="_blank" rel="noreferrer" className="text-sm font-semibold text-accent">DGE recommendations ↗</a></div></div><div className="grid gap-3 sm:grid-cols-2">{[
+          ["🥕", "Eat varied and colourful", "Build meals around vegetables, fruit, pulses, whole grains, nuts and other nutrient-rich foods."],
+          ["💧", "Choose water first", "Water and unsweetened drinks are practical everyday choices."],
+          ["🌾", "Prefer fibre-rich foods", "Whole grains, vegetables, fruit and pulses support fibre intake and fullness."],
+          ["⚖️", "Think in patterns", "One food does not define health. Overall balance, portions and regular habits matter."],
+        ].map(([icon, title, text]) => <article key={title} className="rounded-md bg-bg p-4"><span className="text-2xl">{icon}</span><h3 className="mt-2 text-sm!">{title}</h3><p className="mt-1 text-xs text-text">{text}</p></article>)}</div></div>
+      </section>
+
+      <section className="overflow-hidden rounded-lg border border-accent-border bg-accent-bg p-7 sm:p-10">
+        <div>
+          <span className="inline-flex rounded-pill bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent-ink">Coming soon</span>
+          <h2 className="mt-4 text-2xl! md:text-3xl!">FitMeal will also be available as a mobile app</h2>
+          <p className="mt-3 max-w-2xl text-text">We are planning a simple FitMeal app for your phone. It will give you quick access to recipes, nutrition tracking and your personal meal plan while you are on the go.</p>
+          <div className="mt-7 grid gap-4 md:grid-cols-3">
+            {[
+              ["1", "Download the app", "Get FitMeal from your phone’s app store when it becomes available."],
+              ["2", "Use the same account", "Log in with your existing FitMeal account—no new profile needed."],
+              ["3", "Continue anywhere", "Your planned meals, nutrition entries and progress will stay connected."],
+            ].map(([number, title, text]) => <article key={number} className="rounded-md border border-accent-border bg-surface p-5"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-ink">{number}</span><h3 className="mt-3 text-base!">{title}</h3><p className="mt-2 text-sm text-text">{text}</p></article>)}
+          </div>
+          <p className="mt-5 text-xs text-text">The website remains fully usable. The mobile app is a planned additional option and is not available for download yet.</p>
+        </div>
+      </section>
+
+      <section><div className="text-center"><span className="text-xs font-semibold uppercase tracking-wide text-accent">Questions</span><h2 className="mt-2 text-2xl!">Frequently asked</h2></div><div className="mx-auto mt-7 max-w-3xl space-y-3">{[
+        ["Does FitMeal diagnose health conditions?", "No. FitMeal provides general information and estimates. Medical conditions, pregnancy, eating disorders or therapeutic diets require qualified professional advice."],
+        ["Are calorie targets exact?", "No. They are estimates based on the information entered. Real needs can differ, so trends and wellbeing matter more than a single number."],
+        ["Can one meal be called healthy or unhealthy?", "Context matters. FitMeal checks whether a choice fits the current plan, but it does not judge a single food in isolation."],
+        ["Where does the nutrition data come from?", "Product data comes from Open Food Facts with USDA FoodData Central as a fallback. Recipe inspiration comes from TheMealDB."],
+      ].map(([question, answer]) => <details key={question} className="rounded-lg border border-border bg-surface p-5"><summary className="cursor-pointer font-semibold text-text-h">{question}</summary><p className="mt-3 text-sm text-text">{answer}</p></details>)}</div></section>
+
       {/* Closing CTA */}
       <section className="flex flex-col items-center gap-4 rounded-lg bg-surface-inverted px-8 py-14 text-center text-text-on-inverted">
         <h2 className="mb-0! text-2xl! text-text-on-inverted! md:text-3xl!">
-          Ready to get started?
+          {authenticated ? "Ready for your next healthy choice?" : "Ready to get started?"}
         </h2>
         <p className="max-w-md text-text-on-inverted/80">
-          Sign up for free and log your first meal today.
+          {authenticated ? "Continue building a meal plan that fits your goals." : "Sign up for free and log your first meal today."}
         </p>
         <Link
-          to="/register"
+          to={authenticated ? "/meal-planner" : "/register"}
           className="mt-2 rounded-pill bg-accent px-6 py-3 font-semibold text-accent-ink shadow-sm transition-opacity hover:opacity-85"
         >
-          Get Started Free
+          {authenticated ? "Open Meal Planner" : "Get Started Free"}
         </Link>
       </section>
 
-      {demoOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-          onClick={() => setDemoOpen(false)}
-        >
-          <div
-            className="relative w-full max-w-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setDemoOpen(false)}
-              aria-label="Close video"
-              className="absolute -top-10 right-0 flex h-8 w-8 items-center justify-center rounded-full text-text-on-inverted hover:opacity-80"
-            >
-              <CloseIcon />
-            </button>
-            <video
-              src="/videos/demo.mp4"
-              poster="/videos/demo-poster.jpg"
-              controls
-              autoPlay
-              playsInline
-              className="w-full rounded-lg shadow-xl"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -247,9 +279,9 @@ function PhoneMockup() {
   const kcalNow = 1720;
   const pct = Math.round((kcalNow / kcalGoal) * 100);
   const macros = [
-    { label: "Protein", now: 115, goal: 160, color: "#16a34a" },
-    { label: "Carbs", now: 180, goal: 250, color: "#f59e0b" },
-    { label: "Fat", now: 55, goal: 70, color: "#ef4444" },
+    { label: "Protein", now: 115, goal: 160, color: "var(--accent)" },
+    { label: "Carbs", now: 180, goal: 250, color: "#c8b261" },
+    { label: "Fat", now: 55, goal: 70, color: "#9f9060" },
   ];
 
   return (
@@ -276,7 +308,7 @@ function PhoneMockup() {
             <div
               className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full"
               style={{
-                background: `conic-gradient(#3b82f6 0% 45%, #16a34a 45% 60%, #f59e0b 60% ${pct}%, var(--border) ${pct}% 100%)`,
+                background: `conic-gradient(#ffffff 0% 45%, var(--accent) 45% 60%, #c8b261 60% ${pct}%, var(--border) ${pct}% 100%)`,
               }}
             >
               <div className="flex h-15 w-15 flex-col items-center justify-center rounded-full bg-surface text-center">
@@ -344,7 +376,7 @@ function PhoneMockup() {
           <span className="-mt-6 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-accent-ink shadow-md">
             <PlusIcon />
           </span>
-          <TabItem icon={<DumbbellIcon />} label="Workouts" />
+          <TabItem icon={<ChartIcon />} label="Planner" />
           <TabItem icon={<PersonIcon />} label="Profile" />
         </div>
       </div>
@@ -447,19 +479,6 @@ function PlusIcon() {
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-      <path
-        d="M6 6l12 12M18 6 6 18"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function PlayIcon() {
   return (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
@@ -496,20 +515,6 @@ function BookIcon() {
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function DumbbellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-      <path
-        d="M4 9v6M2 10.5v3M8 7v10M16 7v10M20 10.5v3M22 9v6M8 12h8"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );

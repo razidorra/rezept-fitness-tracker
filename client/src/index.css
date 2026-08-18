@@ -28,44 +28,47 @@
 
 :root {
   /* Text */
-  --text: #6b6b63;
-  --text-h: #101014;
+  --text: #aaaaaa;
+  --text-h: #ffffff;
 
   /* Flächen */
-  --bg: #f4f5f1;
-  --surface: #ffffff;
-  --surface-inverted: #111111;
-  --text-on-inverted: #f5f5f0;
+  --bg: #0c0c0c;
+  --surface: #121212;
+  --surface-inverted: #1e1e1e;
+  --text-on-inverted: #ffffff;
+  --chrome: #0c0c0c;
+  --chrome-text: #ffffff;
 
   /* Linien */
-  --border: #e4e4de;
+  --border: #333333;
 
-  /* Akzent (Grün, FitMeal-Branding) — dunkel genug für Text UND Fläche:
-     bg-accent + text-accent-ink für gefüllte Buttons, text-accent für
-     grünen Fließtext/Akzent-Wörter, bg-accent-bg für getönte Badges/Icons. */
-  --accent: #16a34a;
-  --accent-ink: #ffffff;
-  --accent-bg: #dcfce7;
-  --accent-border: rgba(22, 163, 74, 0.35);
+  /* Gericht-Referenz: tiefes Schwarz, warmes Gold und elegante Cremetöne. */
+  --accent: #dcca87;
+  --accent-ink: #0c0c0c;
+  --accent-bg: rgba(220, 202, 135, 0.12);
+  --accent-border: #dcca87;
+  --button: #dcca87;
+  --button-ink: #0c0c0c;
+  --highlight: #dcca87;
 
-  --code-bg: #f4f3ec;
+  --code-bg: #1e1e1e;
   --shadow:
-    rgba(0, 0, 0, 0.06) 0 10px 15px -3px, rgba(0, 0, 0, 0.04) 0 4px 6px -2px;
+    rgba(0, 0, 0, 0.4) 0 20px 40px -12px, rgba(0, 0, 0, 0.25) 0 6px 12px -6px;
 
   /* Radien */
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-pill: 999px;
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 1px;
 
   /* Schrift */
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: 'Open Sans', system-ui, sans-serif;
+  --heading: 'Cormorant Upright', Georgia, serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  color-scheme: dark;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -78,28 +81,11 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #a8a8a0;
-    --text-h: #f5f5f0;
-
-    --bg: #121212;
-    --surface: #1b1b1b;
-    --surface-inverted: #f4f5f1;
-    --text-on-inverted: #101014;
-
-    --border: #2a2a2a;
-
-    /* Etwas heller als im Light-Mode, damit es auf dunklem Grund nicht absäuft */
-    --accent: #22c55e;
-    --accent-ink: #ffffff;
-    --accent-bg: rgba(34, 197, 94, 0.16);
-    --accent-border: rgba(34, 197, 94, 0.4);
-
-    --code-bg: #1f2028;
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+button.bg-accent,
+a.bg-accent {
+  background-color: var(--button);
+  color: var(--button-ink);
+  border: 1px solid var(--accent);
 }
 
 body {
@@ -114,9 +100,11 @@ body {
 }
 
 h1,
-h2 {
+h2,
+h3,
+h4 {
   font-family: var(--heading);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-h);
 }
 

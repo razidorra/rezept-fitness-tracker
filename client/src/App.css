@@ -1,79 +1,101 @@
 .main-nav {
+  position: relative;
+  z-index: 30;
   display: flex;
   align-items: center;
   gap: 32px;
-  padding: 14px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  padding: 20px 5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  background: var(--chrome);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
 
 .brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .brand-mark {
   display: flex;
-  align-items: center;
-  justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 50%;
-  background: var(--accent);
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1px;
+  background: var(--button);
+  color: var(--button-ink);
 }
 
 .brand-word {
-  font-size: 19px;
-  font-weight: 800;
+  color: var(--chrome-text);
+  font-family: var(--heading);
+  font-size: 26px;
+  font-weight: 700;
   letter-spacing: -0.3px;
-  color: var(--text-h);
 }
 
 .brand-word-accent {
-  color: var(--accent);
+  color: var(--highlight);
 }
 
 .main-links {
   display: flex;
-  gap: 20px;
   flex: 1;
+  gap: 20px;
 }
 
 .main-links a,
-.nav-login {
-  color: var(--text);
-  text-decoration: none;
+.nav-login,
+.nav-profile {
+  color: color-mix(in srgb, var(--chrome-text) 78%, transparent);
   font-size: 15px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
 }
 
 .main-links a:hover,
-.nav-login:hover {
-  color: var(--text-h);
+.nav-login:hover,
+.nav-profile:hover {
+  color: var(--chrome-text);
+}
+
+.nav-profile.active {
+  color: var(--highlight);
+  font-weight: 700;
+}
+
+.profile-settings .cl-rootBox,
+.profile-settings .cl-userProfile-root,
+.profile-settings .cl-cardBox {
+  width: 100%;
+  max-width: none;
 }
 
 .main-links a.active {
-  color: var(--accent);
-  font-weight: 600;
+  color: var(--highlight);
+  font-weight: 700;
 }
 
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .nav-signup {
-  background: var(--accent);
-  color: var(--accent-ink);
-  text-decoration: none;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  background: var(--button);
+  color: var(--button-ink);
+  padding: 8px 18px;
   font-size: 14px;
   font-weight: 600;
-  padding: 8px 18px;
-  border-radius: var(--radius-pill);
+  text-decoration: none;
   transition: opacity 0.15s ease;
 }
 
@@ -81,10 +103,85 @@
   opacity: 0.85;
 }
 
-@media (max-width: 768px) {
+.app-main {
+  width: 100%;
+  flex: 1;
+  box-sizing: border-box;
+  padding: 64px 5rem 100px;
+}
+
+.site-footer {
+  display: flex;
+  width: 100%;
+  min-height: 280px;
+  margin: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 38px;
+  border-top: 1px solid var(--border);
+  background: var(--chrome);
+  color: var(--chrome-text);
+  padding: 48px 24px;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px 48px;
+}
+
+.footer-links a {
+  color: color-mix(in srgb, var(--chrome-text) 78%, transparent);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: var(--highlight);
+}
+
+.social-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+}
+
+.social-links a {
+  display: flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in srgb, var(--chrome-text) 78%, transparent);
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.social-links a:hover {
+  color: var(--highlight);
+  transform: translateY(-2px);
+}
+
+.social-links svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.footer-bottom {
+  color: color-mix(in srgb, var(--chrome-text) 72%, transparent);
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
   .main-nav {
     flex-wrap: wrap;
     gap: 12px;
+    padding-inline: 16px;
   }
 
   .main-links {
@@ -93,8 +190,20 @@
     justify-content: center;
     gap: 16px;
   }
-}
 
-main {
-  padding: 32px 24px;
+  .app-main {
+    padding: 28px 16px 48px;
+  }
+
+  .footer-links {
+    gap: 14px 24px;
+  }
+
+  .site-footer {
+    min-height: 260px;
+    margin: 0;
+    gap: 32px;
+    padding: 40px 16px;
+  }
+
 }

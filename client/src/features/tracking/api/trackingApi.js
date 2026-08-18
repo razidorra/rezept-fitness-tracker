@@ -1,10 +1,22 @@
 // API-Aufrufe fürs Tracking-Feature. Nutzt apiRequest() aus shared/api/apiClient.js.
 // Alle Endpunkte brauchen Auth -- also { auth: true } mitgeben.
 //
-// Setzt voraus, dass /api/tracking im Backend existiert (siehe server/spec.md,
-// Abschnitt "Tracking") -- also erst backend-seitig fertig bauen, bevor das hier
-// sinnvoll testbar ist.
+// Siehe server/spec.md, Abschnitt "Tracking", für das Datenformat.
 
-// TODO: getEntries({ from, to }) -> apiRequest(`/tracking?from=${from}&to=${to}`, { auth: true })
-// TODO: createEntry(entryData) -> apiRequest("/tracking", { method: "POST", auth: true, body: entryData })
-// TODO: deleteEntry(id) -> apiRequest(`/tracking/${id}`, { method: "DELETE", auth: true })
+import { apiRequest } from "../../../shared/api/apiClient.js";
+
+export function getEntries({ from, to } = {}) {
+  const query = new URLSearchParams();
+  if (from) query.set("from", from);
+  if (to) query.set("to", to);
+  const suffix = query.size ? `?${query}` : "";
+  return apiRequest(`/tracking${suffix}`, { auth: true });
+}
+
+export function createEntry(entryData) {
+  return apiRequest("/tracking", { method: "POST", auth: true, body: entryData });
+}
+
+export function deleteEntry(id) {
+  return apiRequest(`/tracking/${encodeURIComponent(id)}`, { method: "DELETE", auth: true });
+}

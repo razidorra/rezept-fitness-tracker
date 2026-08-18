@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const savedRecipeSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: String, required: true, index: true },
     externalId: { type: String, required: true },
     title: { type: String, required: true },
     imageUrl: String,
@@ -13,5 +13,7 @@ const savedRecipeSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+savedRecipeSchema.index({ user: 1, externalId: 1 }, { unique: true });
 
 export default mongoose.model("SavedRecipe", savedRecipeSchema);
